@@ -1,12 +1,20 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict
+from contextlib import asynccontextmanager
 from app.database import init_db
 from app.routes_auth import router as auth_router
 from app.routes_notifications import router as notifications_router
 import json
 
-app = FastAPI(title="Notification Service API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    init_db()
+    yield
+    # Shutdown (if needed)
+
+app = FastAPI(title="Notification Service API", lifespan=lifespan)
 
 # CORS middleware
 app.add_middleware(
@@ -69,10 +77,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
 @app.get("/")
 async def root():
     return {"message": "Notification Service API", "version": "1.0.0"}
-
-@app.on_event("startup")
-async def startup_event():
-    init_db()
 
 if __name__ == "__main__":
     import uvicorn
